@@ -10,7 +10,10 @@
                 <div class="card-body">
                    Title: {{ $posts->title }}<br>
                    Description: {{ $posts->description }}<br>
-                   Creted At: {{ $posts->created_at }}
+                   Creted At: {{ $posts->created_at }}<br>
+                   Image: 
+
+                   <img src="{{ asset('/storage/img/'.$posts->img) }}">
                 </div>
             </div>
         </div>
