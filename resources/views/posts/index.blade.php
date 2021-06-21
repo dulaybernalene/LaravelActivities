@@ -7,6 +7,11 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
+                @if (session('message'))
+                    <div class="alert alert-success">
+                        {{ session('message') }}
+                    </div>     
+                @endif
                 <div class="card-header"><a class="btn button btn-info" href="/posts/create">Create New</a></div>
                 <div class="card-body">
                     <table style="width: 100%" class="table table-hover">
@@ -29,7 +34,7 @@
                                 <td><a href="/posts/{{$value->id}}" class="btn btn-info">View</a></td>
                                 <td><a href="/posts/{{$value->id}}/edit" class="btn btn-warning">Edit</a></td>
                                 <td> 
-                                    <form action="{{ route('posts.destroy', $value->id) }}" method="POST">
+                                   <form action="{{ route('posts.destroy', $value->id) }}" method="POST">
                                             @method('DELETE')
                                             @csrf
                                             <button type="submit" class="btn btn-danger">Delete </button>
@@ -39,6 +44,8 @@
                             @endforeach
                         </tbody>
                     </table>
+
+                    Total # of Posts {{ $count }}
                 </div>
             </div>
         </div>

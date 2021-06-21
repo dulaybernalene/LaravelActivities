@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
 {
@@ -14,9 +17,18 @@ class PostController extends Controller
      */
     public function index()
     {
-        //
-        $posts = Post::get();
-        return view('posts.index', compact('posts'));
+        //$posts = Post::all();
+        //$posts = Post::where('title','!=','')->orderBy('created_at','desc')->get();
+        //dd($posts);
+        //$posts = DB::table('users')
+            //->leftJoin('posts', 'users.id', '=', 'posts.user_id')
+            //->get();
+        $user = User::find(Auth::id()); 
+        $posts = $user->posts()->orderBy('created_at','desc')->get();
+        $count = $user->posts()->where('title','!=','')->count();
+        //$count = Post::where('title','!=','')->count();
+        return view('posts.index', compact('posts', 'count'));
+        //return view('posts.index', compact('posts'));
     }
 
     /**
@@ -26,7 +38,6 @@ class PostController extends Controller
      */
     public function create()
     {
-        //
         return view('posts.create');
     }
 
@@ -38,13 +49,13 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
         $request->validate([
             'title' => 'required|unique:posts|max:255',
             'description' => 'required'
         ]);
+        
+        if($request->hasFile('img')){
 
-        if($request->hasfile('img')){
             $filenameWithExt = $request->file('img')->getClientOriginalName();
 
             $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
@@ -59,65 +70,67 @@ class PostController extends Controller
         }
 
         $posts = new Post();
-        $posts->title=$request->title;
-        $posts->description=$request->description;
+        $posts->fill($request->all());
         $posts->img = $fileNameToStore;
-        $posts->save();
-        
-        return redirect('/posts');
+        $posts->user_id = auth()->user()->id;
+        if($posts->save()){
+            $message = "Successfully save";
+        }
+
+        return redirect('/posts')->with('message', $message);
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\Post  $post
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
-    {
-        //
-        $posts = Post::find($id);
-        #dd($posts);
-        return view('posts.show', compact('posts'));
+    public function show(Post $post)
+    {    
+        $posts = Post::find($post->id);
+        $comments = $post->comments;
+        return view('posts.show', compact('post', 'comments'));
+
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\Post  $post
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Post $post)
     {
-        //
-        $posts = Post::find($id);
-        #dd($posts);
-        return view('posts.edit', compact('posts'));
+        return view('posts.edit', compact('post'));
     }
 
     /**
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Post  $post
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
-        //
-        #dd($request);
-        $posts=Post::find($id);
-        $posts->title=$request->title;
-        $posts->description=$request->description;
-        $posts->save();
+        $request->validate([
+            'title' => 'required|unique:posts|max:255',
+            'description' => 'required'
+        ]);
         
+        $posts = Post::find($id);
+        $posts->fill($request->all());
+        $posts->user_id = auth()->user()->id;
+        $posts->save();
+
         return redirect('/posts');
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\Post  $post
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -126,6 +139,27 @@ class PostController extends Controller
         $posts = Post::find($id);
         $posts->delete();
 
+        return redirect('/posts');
+    }
+
+    public function deleteBlank()
+    {
+        $delete = Post::where('title','=','')->delete();
+
+        return redirect('/posts');
+    }
+
+    public function archive()
+    {
+        $posts = Post::onlyTrashed()->get();
+        //dd($posts);
+        return view('posts.archive',compact('posts'));
+    }
+
+    public function restore($id)
+    {
+        $posts = Post::withTrashed()->find($id)->restore();
+        
         return redirect('/posts');
     }
 }
